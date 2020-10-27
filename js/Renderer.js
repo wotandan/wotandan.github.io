@@ -14,6 +14,8 @@ function Renderer(cam, bal)
 	this.camera = cam;
 	this.ball = bal;
 	
+	this.swing = null;	// Set later
+	
 	var self = this;
 	this.onHoleChange = function()
 	{
@@ -50,6 +52,38 @@ Renderer.prototype.drawScene = function()
 	this.drawFeatures();
 	
 	this.drawBall();
+	
+	if (this.swing != null)
+	{
+		this.drawPowerMeter(this.swing.position, this.swing.power);
+	}
+};
+
+Renderer.prototype.drawPowerMeter = function(position, power)
+{
+	// Position goes from -20 to +120
+	var height = 350;
+	var pxPerPercent = height / 140;
+
+	var zeroPos = height - (pxPerPercent * 20);
+	
+	var barHeight = (pxPerPercent * position);
+	
+	// Background
+	this.viewport.fillStyle = "black";
+	this.viewport.fillRect(0, 0, 30, height);
+	
+	// Bar
+	this.viewport.fillStyle = "red";
+	this.viewport.fillRect(0, zeroPos - barHeight, 30, barHeight);
+	
+	// Top bar
+	var powerBar = (pxPerPercent * power);
+	this.viewport.fillRect(0, zeroPos - powerBar, 30, 3);
+	
+	// Zero bar
+	this.viewport.fillStyle = "white";
+	this.viewport.fillRect(0, zeroPos, 30, 3);
 };
 
 Renderer.prototype.drawBall = function()

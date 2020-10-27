@@ -1,6 +1,8 @@
 
 function Mean18()
 {
+	this.bag = new ClubSelector();
+	
 	this.camera = new Camera();
 	this.ball = new Ball();
 	
@@ -14,6 +16,19 @@ function Mean18()
 	
 	$(document).keypress(onKeyDelegate);
 	
+	var onSwingDelegate = function(power, accuracy)
+	{
+		var club = self.bag.getSelectedClub();
+		
+		// TODO: Store the accuracy somewhere to use for hook/slice
+		//	Possibly set as spin factor on the ball itself
+		self.ball.velocity = club.swing(power, self.camera.angle);
+	};
+	
+	this.swing = new SwingMeter(onSwingDelegate);
+	this.renderer.swing = this.swing;
+	
+	
 	var lastTime = undefined;
 	var renderLoop = function(timestamp)
 	{
@@ -25,6 +40,7 @@ function Mean18()
 		var elapsedSeconds = (timestamp - lastTime) / 1000.0;
 		lastTime = timestamp;
 		
+		self.swing.update(elapsedSeconds);
 		self.ball.updateBallPos(elapsedSeconds);
 		self.renderer.drawScene();
 		window.requestAnimationFrame(renderLoop);
@@ -41,8 +57,7 @@ Mean18.prototype.onKey = function(event)
 	switch(event.keyCode)
 	{
 		case 32: // spacebar
-			// TODO: Show the swing gage to set the velocity
-			this.ball.hitBall(50, this.camera.angle, 12);
+			this.swing.tap();	// Trigger the swing meter
 			break;
 		case 97: //left
 			this.camera.angle += turn;

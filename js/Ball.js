@@ -1,5 +1,3 @@
-function deg2rad(angle) { return angle * 0.017453292519943295; }
-
 function Ball()
 {
 	this.item_id = 6;
@@ -14,25 +12,6 @@ function Ball()
 		z: 0.0
 	};
 }
-
-Ball.prototype.hitBall = function(force, angle, loftDegrees)
-{
-	// Vector the forces
-	var sin_r = Math.sin(angle);
-	var cos_r = Math.cos(angle);
-
-	var sin_z = Math.sin(deg2rad(loftDegrees));
-
-	// Some of the force is used to loft the ball
-	var remainingForce = (1 - sin_z) * force;
-
-	// TODO:  Account for slice 	
-	this.velocity = {
-		x: sin_r * remainingForce,
-		y: cos_r * remainingForce,
-		z: sin_z * force
-	};
-};
 
 Ball.prototype.updateBallPos = function(elapsed_seconds)
 {
