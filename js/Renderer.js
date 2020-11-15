@@ -131,26 +131,40 @@ Renderer.prototype.drawBall = function()
 
 	var scale = (280.0 / dist);
 	
-	// Draw distant objects beyond horizon, just make them shorter so it looks like they're peeking
-	var height_diff = 0;
-	if(dist > 292) { height_diff = (dist - 292) / 2.0; }
+	// Don't draw ball beyond horizon
+	if(dist > 292) { return; }
 
-	var tgt_height = height_diff * scale;
-
-	var top = (350 - (scr_y + scr_z)) + height_diff;
-	
 	var radius = scale * 0.3;
-	
 	if (radius < 1)
 	{
 		radius = 1;
 	}
-
-	// Draw distant objects beyond horizon, just make them shorter so it looks like they're peeking
+	
+	// Draw the ball's shadow
+	var shadowTop = (350 - scr_y);
+	
+	this.viewport.fillStyle = "black";
+	this.viewport.beginPath();
+	this.viewport.ellipse(scr_x, shadowTop + radius, radius, radius / 2, 0, 0, 2 * Math.PI);
+	this.viewport.fill();
+	
+	// Draw the ball itself
+	var ballTop = shadowTop - scr_z;// + height_diff;
 	this.viewport.fillStyle = "white";
 	this.viewport.beginPath();
-	this.viewport.ellipse(scr_x, top, radius, radius, 0, 0, 2 * Math.PI);
+	this.viewport.ellipse(scr_x, ballTop, radius, radius, 0, 0, 2 * Math.PI);
 	this.viewport.fill();
+	
+	// Add an outline around the ball to make it more visible
+	var outlineWidth = 0.5;
+	if (radius < 3)
+	{
+		outlineWidth *= (radius / 3);
+	}
+	
+	this.viewport.lineWidth = outlineWidth;
+	this.viewport.strokeStyle = "black";
+	this.viewport.stroke();
 
 };
 

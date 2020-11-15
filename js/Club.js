@@ -11,7 +11,7 @@ function Club(clubName, loftAngle, lengthInches)
 Club.prototype.swing = function(power, heading)
 {
 	// Calculate the swing force based on the club length and power
-	var force = power * 0.5;	// TODO: Convert percentage to actual force in a better way
+	var force = power * 0.2;	// TODO: Convert percentage to actual force in a better way
 	
 	// Vector the vertical (Z) portion of the force based on the angle
 	var sin_z = Math.sin(deg2rad(this.angle));
