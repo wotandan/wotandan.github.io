@@ -146,9 +146,17 @@ Mean18.prototype.setupTouchEvents = function()
 	var moved = false;
 	
 	var canvas = $('#3dview')[0];
+	
 	canvas.onmousedown = function(e)
 	{
 		lastx = e.offsetX;
+		moved = false;
+	};
+
+	canvas.ontouchstart = function(e)
+	{
+		var touches = e.changedTouches;
+		lastx = touches[0].pageX
 		moved = false;
 	};
 	
@@ -172,10 +180,31 @@ Mean18.prototype.setupTouchEvents = function()
 		}	
 	};
 	
-	canvas.onmouseup = function(e)
+	canvas.ontouchmove = function(e)
+	{
+		if (lastx == null) {return;}
+		
+		var touches = e.changedTouches;
+		
+		var x = touches[0].pageX;
+		var dx = x - lastx;
+		
+		if (dx != 0)
+		{
+			moved = true;
+			self.camera.angle += dx * turn;
+			self.moveCamera();
+			
+			lastx = x;
+		}	
+	};
+	
+	var endTouch = function(e)
 	{
 		lastx = null;
 	};
+	canvas.onmouseup = endTouch;
+	canvas.ontouchend = endTouch;
 	
 	canvas.onclick = function(e)
 	{
