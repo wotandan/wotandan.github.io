@@ -36,6 +36,14 @@ function ClubSelector()
 	// Start at driver
 	this.clubPicker.val(0);
 	
+	var self = this;
+	this.onSelectClub = function()
+	{
+		self.clubPicker.blur();
+	};
+	
+	this.clubPicker.change(this.onSelectClub);
+	
 	// TODO: Show some kinda statistics on selected club
 };
 

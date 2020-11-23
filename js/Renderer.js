@@ -1,35 +1,34 @@
 function rad2deg(angle) { return angle / 0.017453292519943295; }
 
 // TODO: Pass in element name instead of using #3dview
-function Renderer(cam, bal)
+function Renderer(cam, bal, course)
 {
-	this.viewport = $('#3dview')[0].getContext('2d');
+	this.canvas = $('#3dview')[0];
 	
+	this.width = this.canvas.width;
+	this.height = this.canvas.height;
+	
+	this.horizonHeight = 40;
+	this.groundHeight = this.height - this.horizonHeight;
+	
+	// Calculate scale value to correct for non-standard viewport size
+	this.view_scale = 310 / this.groundHeight;
+	
+	this.viewport = this.canvas.getContext('2d');
 	this.viewport.imageSmoothingEnabled = false;
 	this.viewport.mozImageSmoothingEnabled = false;
 	this.viewport.webkitImageSmoothingEnabled = false;
 	
-	this.viewportImageData = this.viewport.createImageData(592, 310);
+	this.viewportImageData = this.viewport.createImageData(this.width, this.groundHeight);
 
 	this.camera = cam;
 	this.ball = bal;
 	
 	this.swing = null;	// Set later
 	
-	var self = this;
-	this.onHoleChange = function()
-	{
-		var hole_info = self.course.courseInfo.holes[self.course.currentHole];
-
-		self.camera.x = hole_info.features[1].x;
-		self.camera.y = hole_info.features[1].y;
-
-		// Drop the ball at the current location
-		self.ball.x = self.camera.x + 5;
-		self.ball.y = self.camera.y;
-	};
+	this.course = course;
 	
-	this.course = new CourseLoader("BUSHHILL.M18/", this.onHoleChange);
+	this.renderBackground = new RenderBackground(this.viewportImageData, course);
 }
 
 Renderer.prototype.drawScene = function()
@@ -43,11 +42,11 @@ Renderer.prototype.drawScene = function()
 
 	if (this.camera.moved())
 	{
-		this.drawGround();
+		this.renderBackground.drawGround(this.camera);
 	}
 	
 	// Render results of drawGround
-	this.viewport.putImageData(this.viewportImageData, 0, 40);
+	this.viewport.putImageData(this.viewportImageData, 0, this.horizonHeight);
 
 	this.drawFeatures();
 	
@@ -62,16 +61,15 @@ Renderer.prototype.drawScene = function()
 Renderer.prototype.drawPowerMeter = function(position, power)
 {
 	// Position goes from -20 to +120
-	var height = 350;
-	var pxPerPercent = height / 140;
+	var pxPerPercent = this.height / 140;
 
-	var zeroPos = height - (pxPerPercent * 20);
+	var zeroPos = this.height - (pxPerPercent * 20);
 	
 	var barHeight = (pxPerPercent * position);
 	
 	// Background
 	this.viewport.fillStyle = "black";
-	this.viewport.fillRect(0, 0, 30, height);
+	this.viewport.fillRect(0, 0, 30, this.height);
 	
 	// Bar
 	this.viewport.fillStyle = "red";
@@ -88,8 +86,6 @@ Renderer.prototype.drawPowerMeter = function(position, power)
 
 Renderer.prototype.drawBall = function()
 {
-	var width = 592;
-	
 	// TODO: Refactor to share code with drawFeatures
 	var x_dist = this.camera.x - this.ball.x;
 	var y_dist = this.ball.y - this.camera.y;
@@ -99,7 +95,7 @@ Renderer.prototype.drawBall = function()
 	if(dist < 2 || dist > 400) { return; }
 
 	// Determine Y pos for drawing
-	var scr_y = 12.5447 * Math.pow(dist, 0.563497); // Perfect!
+	var scr_y = (12.5447 * Math.pow(dist, 0.563497)) / this.view_scale; // Perfect!
 
 	// Determine how far away our center point is from the item
 	var sin_r = Math.sin(this.camera.angle);
@@ -120,8 +116,8 @@ Renderer.prototype.drawBall = function()
 	if(x1 < y1) { cp_dist *= -1.0; }
 
 	// Determine X pos for drawing
-	var view_px_per_px = pixels_away / width;
-	var scr_x = (cp_dist / view_px_per_px) + width / 2;	// Perfect!
+	var view_px_per_px = pixels_away / this.width;
+	var scr_x = (cp_dist / view_px_per_px) + this.width / 2;	// Perfect!
 
 	var scr_z = 0;
 	if (this.ball.z)
@@ -141,7 +137,7 @@ Renderer.prototype.drawBall = function()
 	}
 	
 	// Draw the ball's shadow
-	var shadowTop = (350 - scr_y);
+	var shadowTop = (this.height - scr_y);
 	
 	this.viewport.fillStyle = "black";
 	this.viewport.beginPath();
@@ -170,8 +166,6 @@ Renderer.prototype.drawBall = function()
 
 Renderer.prototype.drawFeatures = function()
 {
-	var width = 592;
-
 	var features = this.course.getSortedFeatures(this.camera.x, this.camera.y);
 
 	var sin_r = Math.sin(this.camera.angle);
@@ -198,7 +192,7 @@ Renderer.prototype.drawFeatures = function()
 		if(dist < 2 || dist > 400) { continue; }
 
 		// Determine Y pos for drawing
-		var scr_y = 12.5447 * Math.pow(dist, 0.563497); // Perfect!
+		var scr_y = (12.5447 * Math.pow(dist, 0.563497)) / this.view_scale; // Perfect!
 
 		// Determine how far away our center point is from the item
 		var cp_x = this.camera.x + sin_r * pixels_away;
@@ -215,8 +209,8 @@ Renderer.prototype.drawFeatures = function()
 		if(x1 < y1) { cp_dist *= -1.0; }
 
 		// Determine X pos for drawing
-		var view_px_per_px = pixels_away / width;
-		var scr_x = (cp_dist / view_px_per_px) + width / 2;	// Perfect!
+		var view_px_per_px = pixels_away / this.width;
+		var scr_x = (cp_dist / view_px_per_px) + this.width / 2;	// Perfect!
 
 		var scr_z = 0;
 		if(feature.z)
@@ -236,7 +230,11 @@ Renderer.prototype.drawFeatureAt = function(item_id, x, y, z, dist)
 
 	// Draw distant objects beyond horizon, just make them shorter so it looks like they're peeking
 	var height_diff = 0;
-	if(dist > 292) { height_diff = (dist - 292) / 2.0; }
+	if(dist > 292) 
+	{
+		height_diff = (dist - 292) / 2.0; 
+		height_diff /= this.view_scale;
+	}
 
 	var img = this.course.featureImages[item_id];
 
@@ -244,66 +242,9 @@ Renderer.prototype.drawFeatureAt = function(item_id, x, y, z, dist)
 	var tgt_height = (img.height - height_diff) * scale;
 
 	var left = x - tgt_width / 2.0;
-	var top  = (350 - ((y + z) + tgt_height)) + height_diff;
+	var top  = (this.height - ((y + z) + tgt_height)) + height_diff;
 
 	this.viewport.drawImage(img, 0, 0, img.width, img.height - height_diff, left, top, tgt_width, tgt_height);
-};
-
-Renderer.prototype.setImageDataPixel = function(x, y, color)
-{
-	var ofs = (this.viewportImageData.width * y + x) * 4;
-
-	// The more green something it is the more interference it may have.  Adds texture
-	var chance = (color.data[1]) / 255.0 + 0.2;
-	var tweak = (Math.random() > chance);
-
-	for(var i = 0; i < 4; i++)
-	{
-		if(tweak && i < 3)
-		{
-			this.viewportImageData.data[ofs + i] = (color.data[i] - 35) % 0xFF;
-		}
-		else
-		{
-			this.viewportImageData.data[ofs + i] = color.data[i];
-		}
-	}
-};
-
-Renderer.prototype.drawGround = function(camera)
-{
-	var sin_r = Math.sin(this.camera.angle);
-	var cos_r = Math.cos(this.camera.angle);
-
-	var sin_la = Math.sin(this.camera.angle - 1.5708);
-	var cos_la = Math.cos(this.camera.angle - 1.5708);
-
-	// Draw the course
-	for(var y = 0; y < 310; y++)
-	{
-		var topOff = 309 - y;
-
-		// Calculate distance to scanline
-		var pixels_away = (0.0112367131 * Math.pow(y, 1.7744631)) / 5.0;
-		var view_px_per_px = pixels_away / 592;
-
-		var cp_x = this.camera.x + sin_r * pixels_away;
-		var cp_y = this.camera.y + cos_r * pixels_away;
-
-		// Now go 90 degrees from each side
-		var mx = sin_la * view_px_per_px;
-		var my = cos_la * view_px_per_px;
-
-		for(var x = 0; x < 592; x++)
-		{
-			var src_x = Math.round(cp_x - mx * (296 - x));
-			var src_y = Math.round(cp_y - my * (296 - x));
-
-			var color = this.course.getCoursePixel(src_x, src_y);
-
-			this.setImageDataPixel(x, topOff, color);
-		}
-	}
 };
 
 Renderer.prototype.drawHorizon = function()
@@ -313,7 +254,6 @@ Renderer.prototype.drawHorizon = function()
 	for(var h = -1; h < 2; h++)
 	{
 		var xof = h * 512 + horizonOffset;
-		this.viewport.drawImage(this.course.horizonImg, 0, 0, 128, 20, xof, 0, 512, 40);
+		this.viewport.drawImage(this.course.horizonImg, 0, 0, 128, 20, xof, 0, 512, this.horizonHeight);
 	}
 };
-

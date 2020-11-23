@@ -21,6 +21,7 @@ function CourseLoader(dir, callback)
 	this.onSelectHole = function()
 	{
 		self.loadHole(self.holePicker.val());
+		self.holePicker.blur();
 	};
 	
 	this.holePicker.change(this.onSelectHole);
@@ -149,6 +150,22 @@ CourseLoader.prototype.getSortedFeatures = function(x, y)
 	return features;
 };
 
+CourseLoader.prototype.getFlagFeature = function()
+{
+	var holeFeatures = this.courseInfo.holes[this.currentHole].features;
+
+	for(var f = 0; f < holeFeatures.length; f++)
+	{
+		var feature = holeFeatures[f];
+		
+		if (feature.item_id == 1)
+		{
+			return feature;
+		}
+	}
+
+	return null;
+};
 
 
 
